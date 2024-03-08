@@ -1,0 +1,12 @@
+name: ivon-experiments
+channels:
+  - conda-forge
+dependencies:
+  - cupy
+  - pkg-config
+  - libjpeg-turbo
+  - opencv
+  - numba
+  - pip
+  - pip:
+    - ffcv
