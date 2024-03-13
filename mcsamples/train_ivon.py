@@ -7,18 +7,11 @@ import sys
 
 sys.path.append("..")
 from common.utils import coro_timer, mkdirp
-from common.models import STANDARDMODELS
-from common.dataloaders import (
-    TRAINDATALOADERS,
-    TESTDATALOADER,
-    NTRAIN,
-    OUTCLASS,
-    INSIZE,
-)
+from common.models import MODELS
+from common.dataloaders import TRAINDATALOADERS, NTRAIN, OUTCLASS
 from common.trainutils import (
-    coro_log_timed,
+    coro_log,
     do_epoch,
-    do_trainbatch,
     do_evalbatch,
     SummaryWriter,
     check_cuda,
@@ -26,15 +19,14 @@ from common.trainutils import (
     savecheckpoint,
     loadcheckpoint,
 )
-from common.adahessian import AdaHessian
 
 
 def get_args():
     parser = argparse.ArgumentParser(description="CIFAR10/100 IVON training")
     parser.add_argument(
         "arch",
-        choices=STANDARDMODELS,
-        help="model architecture: " + " | ".join(STANDARDMODELS),
+        choices=MODELS,
+        help="model architecture: " + " | ".join(MODELS),
     )
     parser.add_argument(
         "dataset",
@@ -90,13 +82,6 @@ def get_args():
         help="initial learning rate",
     )
     parser.add_argument(
-        "--lr_final",
-        default=0.0,
-        type=float,
-        metavar="LR",
-        help="final learning rate",
-    )
-    parser.add_argument(
         "--wd",
         "--weight-decay",
         default=1e-4,
@@ -111,7 +96,7 @@ def get_args():
     parser.add_argument(
         "-pf",
         "--printfreq",
-        default=200,
+        default=100,
         type=int,
         metavar="N",
         help="print frequency",
@@ -178,20 +163,12 @@ def get_args():
     parser.add_argument("--ess", default=5e4, type=float)
     parser.add_argument("--clip_radius", default=float("inf"), type=float)
     parser.add_argument("--warmup", default=5, type=int)
-    parser.add_argument(
-        "-opt",
-        "--optimizer",
-        default="ivon",
-        choices=["ivon", "sgd", "adamw", "adahessian"],
-        type=str,
-        help="optimizer to use",
-    )
 
     return parser.parse_args()
 
 
 # noinspection PyShadowingNames
-def do_trainbatch_ivon(batchinput, model, optimizer):
+def do_trainbatch(batchinput, model, optimizer):
     images, target = batchinput
     loss_samples = []
     prob_samples = []
@@ -211,71 +188,6 @@ def do_trainbatch_ivon(batchinput, model, optimizer):
     prob = torch.mean(torch.stack(prob_samples, dim=0), dim=0)
 
     return prob, target, loss.item()
-
-
-def do_trainbatch_adahessian(batchinput, model, optimizer):
-    images, target = batchinput
-    loss_samples = []
-    prob_samples = []
-
-    optimizer.zero_grad(set_to_none=True)
-    output = model(images)
-    loss = nnf.cross_entropy(output, target)
-    loss.backward(create_graph=True)
-    loss_samples.append(loss.detach())
-    prob_samples.append(nnf.softmax(output.detach(), -1))
-
-    optimizer.step()
-
-    loss = torch.mean(torch.stack(loss_samples, dim=0), dim=0)
-    prob = torch.mean(torch.stack(prob_samples, dim=0), dim=0)
-
-    return prob, target, loss.item()
-
-
-train_functions = {
-    "sgd": do_trainbatch,
-    "adamw": do_trainbatch,
-    "adahessian": do_trainbatch_adahessian,
-    "ivon": do_trainbatch_ivon,
-}
-
-
-def get_optimizer(args, model):
-    if args.optimizer == "ivon":
-        return IVON(
-            model.parameters(),
-            lr=args.learning_rate,
-            mc_samples=args.mc_samples,
-            beta1=args.momentum,
-            beta2=args.momentum_hess,
-            weight_decay=args.weight_decay,
-            hess_init=args.hess_init,
-            ess=args.ess,
-            clip_radius=args.clip_radius,
-        )
-
-    elif args.optimizer == "sgd":
-        return torch.optim.SGD(
-            model.parameters(),
-            lr=args.learning_rate,
-            momentum=args.momentum,
-            weight_decay=args.weight_decay,
-        )
-
-    elif args.optimizer == "adamw":
-        return torch.optim.AdamW(
-            model.parameters(),
-            lr=args.learning_rate,
-            weight_decay=args.weight_decay,
-        )
-
-    elif args.optimizer == "adahessian":
-        return AdaHessian(
-            model.parameters(),
-            lr=args.learning_rate,
-            weight_decay=args.weight_decay,
-        )
 
 
 if __name__ == "__main__":
@@ -308,16 +220,21 @@ if __name__ == "__main__":
         print(f"resumed from {args.resume}\n")
     else:
         startepoch = 0
-        modelargs, modelkwargs = (
-            OUTCLASS[args.dataset],
-            INSIZE[args.dataset],
-        ), {}
-        model = STANDARDMODELS[args.arch](*modelargs, **modelkwargs).to(
-            args.device
+        model = MODELS[args.arch](OUTCLASS[args.dataset]).to(args.device)
+        modelargs, modelkwargs = (OUTCLASS[args.dataset],), {}
+        data_size = int(NTRAIN[args.dataset] * args.tvsplit)
+
+        optimizer = IVON(
+            model.parameters(),
+            lr=args.learning_rate,
+            mc_samples=args.mc_samples,
+            beta1=args.momentum,
+            beta2=args.momentum_hess,
+            weight_decay=args.weight_decay,
+            hess_init=args.hess_init,
+            ess=args.ess,
+            clip_radius=args.clip_radius,
         )
-
-        optimizer = get_optimizer(args, model)
-
         scheduler = (
             torch.optim.lr_scheduler.LinearLR(
                 optimizer,
@@ -328,11 +245,6 @@ if __name__ == "__main__":
             if args.warmup > 0
             else None
         )
-
-    data_size = int(NTRAIN[args.dataset] * args.tvsplit)
-
-    # try compile
-    # model = torch.compile(model)
 
     # prep tensorboard if specified
     if args.tensorboard_dir:
@@ -351,37 +263,29 @@ if __name__ == "__main__":
         args.vbatch,
     )
 
-    test_loader = TESTDATALOADER[args.dataset](
-        args.data_dir,
-        args.workers,
-        (device != torch.device("cpu")),
-        args.tbatch,
-    )
-
     # perform training
-    log_ece = coro_log_timed(sw, args.printfreq, args.bins, args.save_dir)
+    log_ece = coro_log(sw, args.printfreq, args.bins, args.save_dir)
 
     print(
-        f"datasize {int(data_size * args.tvsplit)}, paramsize "
+        f"datasize {int(50000 * args.tvsplit)}, paramsize "
         f"{sum(p.nelement() for p in model.parameters())}"
     )
 
     print(f">>> Training starts at {next(timer)[0].isoformat()} <<<\n")
 
-    for e in range(startepoch, args.epochs):
+    for e in range(startepoch, args.epochs + 1):
         # run training part
         log_ece.send((e, "train", len(train_loader), None))
         if e == args.warmup:
             # Creating a new scheduler will already change the learning rate
             print(f"End of warmup epochs, starting cosine annealing")
             scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-                optimizer, eta_min=args.lr_final, T_max=args.epochs
+                optimizer, eta_min=0.0, T_max=args.epochs
             )
         model.train()
-
         do_epoch(
             train_loader,
-            train_functions[args.optimizer],
+            do_trainbatch,
             log_ece,
             device,
             model=model,
@@ -400,7 +304,7 @@ if __name__ == "__main__":
             optimizer,
             scheduler,
         )
-
+        
         checkpoint_epochs = [0, 1, 2, 5, 10, 20, 30, 40, 50, 75, 100, 150, 200]
         if e in checkpoint_epochs:
             savecheckpoint(
@@ -412,21 +316,8 @@ if __name__ == "__main__":
                 optimizer,
                 scheduler,
             )
-        print(f'Max memory usage {torch.cuda.max_memory_allocated()}')
-        time_per_epoch = next(timer)[1]
-        print(f">>> Time elapsed: {time_per_epoch} <<<\n")
 
-        # log time per epochs
-        with open(pjoin(args.save_dir, "time.csv"), "a+") as file:
-            file.write("%d,%f\n" % (e, time_per_epoch.total_seconds()))
-
-        # run evaluation part
-        log_ece.send((e, "test", len(test_loader), None))
-        with torch.no_grad():
-            model.eval()
-            do_epoch(test_loader, do_evalbatch, log_ece, device, model=model)
-        log_ece.throw(StopIteration)
-
+        print(f">>> Time elapsed: {next(timer)[1]} <<<\n")
         if len(val_loader) == 0:
             continue
 
@@ -435,7 +326,7 @@ if __name__ == "__main__":
         with torch.no_grad():
             model.eval()
             do_epoch(val_loader, do_evalbatch, log_ece, device, model=model)
-        log_ece.throw(StopIteration)
+        bins, _, avgvloss = log_ece.throw(StopIteration)[:3]
 
         print(f">>> Time elapsed: {next(timer)[1]} <<<\n")
 

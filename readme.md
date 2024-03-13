@@ -10,7 +10,9 @@ Paper: https://arxiv.org/abs/2402.17641
 
 ----
 
-This repository mainly consists of Python source code and Bash scripts to run the experiments. Our source code is based on the PyTorch deep learning framework.
+This repository mainly consists of Python source code and Bash scripts to run the experiments. Our source code is based on the [PyTorch](https://pytorch.org/) deep learning framework.
+
+ This code base depends on an implementation of the IVON optimizer which is released in a separate repo ([https://github.com/team-approx-bayes/ivon](https://github.com/team-approx-bayes/ivon)) and as a pip installable package [`ivon-opt`](https://pypi.org/project/ivon-opt/).
 
 ## Conda setup
 
@@ -34,6 +36,7 @@ This repository organizes experimental code into separate folders:
 - [`image_classification/`](./image_classification): contains the image classification experiments in Section 4.1.2 that can be run on single GPU, i.e. everything except ImageNet experiments. Follow [these instructions](./image_classification/readme.md) to run the experiments;
 - [`bdl_indomain/`](./bdl_indomain): covers the in-domain Bayesian deep learning experiments in Section 4.2.1. Follow [these instructions](./bdl_indomain/readme.md) to run the experiments;
 - [`bdl_ood/`](./bdl_ood): covers the OOD experiments from Section 4.2.2. Follow [these instructions](./bdl_ood/readme.md) to run the experiments;
+- [`mcsamples/`](./mcsamples): covers the multi MC sample ablation studies from Section 4.2.3. Follow [these instructions](./mcsamples/readme.md) to run the experiments;
 - [`common/`](./common): common utility folder used by the source code in other folders.
 
 ## How to cite

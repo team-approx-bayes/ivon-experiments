@@ -5,7 +5,7 @@ from torch.optim import SGD
 import sys
 
 sys.path.insert(0, "..")
-from common.utils import coro_timer, mkdirp, rm
+from common.utils import coro_timer, mkdirp
 from common.models import SWAGMODELS
 from common.dataloaders import TRAINDATALOADERS, OUTCLASS
 from common.trainutils import (
@@ -250,7 +250,6 @@ if __name__ == "__main__":
                 start_factor=1.0 / args.warmup,
                 end_factor=1.0,
                 total_iters=args.warmup,
-                verbose=True,
             )
             if args.warmup > 0
             else None
@@ -287,7 +286,7 @@ if __name__ == "__main__":
             # Creating a new scheduler will already change the learning rate
             print(f"End of warmup epochs, starting cosine annealing")
             scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-                optimizer, eta_min=0.0, T_max=args.swag_start, verbose=True
+                optimizer, eta_min=0.0, T_max=args.swag_start
             )
         model.train()
         do_epoch(

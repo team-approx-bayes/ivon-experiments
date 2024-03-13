@@ -1,9 +1,8 @@
-"""script to run standard/MCDropout cifar10/cifar100 classification test"""
 import argparse
+from os import listdir
 from os.path import join as pjoin, exists
 import torch
 import torch.nn.functional as nnf
-from ivon import IVON
 import sys
 
 sys.path.append("..")
@@ -20,12 +19,12 @@ from common.dataloaders import (
 from common.trainutils import (
     coro_log_auroc,
     do_epoch,
-    do_evalbatch,
     check_cuda,
     deteministic_run,
-    summarize_csv,
-    get_outputsaver,
+    SummaryWriter,
     loadcheckpoint,
+    get_outputsaver,
+    summarize_csv,
 )
 
 
@@ -48,11 +47,6 @@ def get_args():
     parser.add_argument(
         "traindir", type=str, help="path that collects all trained runs."
     )
-
-    parser.add_argument(
-        "dataset",
-        type=str,
-    )
     parser.add_argument(
         "-j",
         "--workers",
@@ -72,9 +66,9 @@ def get_args():
     parser.add_argument(
         "-tr",
         "--testrepeat",
-        default=0,
+        default=1,
         type=int,
-        help="create test samples for ivon",
+        help="create test samples via process repeat",
     )
     parser.add_argument(
         "-vd",
@@ -146,14 +140,27 @@ def get_args():
         action="store_true",
         help="plot reliability diagram for best val",
     )
+    parser.add_argument(
+        "-tbd",
+        "--tensorboard_dir",
+        default="",
+        type=str,
+        help="if specified, record data for tensorboard.",
+    )
+    parser.add_argument(
+        "--train_mc",
+        type=int,
+        help=" if specified run test over multi-MC training ablations",
+    )
 
     return parser.parse_args()
 
 
-def get_dataloader(args):
+def get_dataloader(outclass: int, args):
+    dataset = {v: k for k, v in OUTCLASS.items()}[outclass]
     # load data
     if args.valdata:
-        _, data_loader = TRAINDATALOADERS[args.dataset](
+        _, data_loader = TRAINDATALOADERS[dataset](
             args.data_dir,
             args.tvsplit,
             args.workers,
@@ -162,7 +169,7 @@ def get_dataloader(args):
             args.batch,
         )
     else:
-        data_loader = TESTDATALOADER[args.dataset](
+        data_loader = TESTDATALOADER[dataset](
             args.data_dir,
             args.workers,
             (device != torch.device("cpu")),
@@ -173,7 +180,7 @@ def get_dataloader(args):
 
 # generic boilerplate to eval/test a minibatch
 # should be wrapped within torch.no_grad()
-def do_evalbatch_ivon(batchinput, model, optimizer: IVON, repeat: int = 1):
+def do_evalbatch(batchinput, model, optimizer, repeat: int = 1):
     inputs, gt = batchinput[:-1], batchinput[-1]
     cumloss = 0.0
     cumprob = torch.zeros([])
@@ -189,8 +196,6 @@ def do_evalbatch_ivon(batchinput, model, optimizer: IVON, repeat: int = 1):
 
 
 if __name__ == "__main__":
-    torch.set_float32_matmul_precision('high')
-    
     timer = coro_timer()
     t_init = next(timer)
     print(f">>> Test initiated at {t_init.isoformat()} <<<\n")
@@ -211,44 +216,54 @@ if __name__ == "__main__":
     # build train_dir for this experiment
     mkdirp(args.save_dir)
 
-    log_ece = coro_log_auroc(None, args.printfreq, args.bins, args.save_dir)
+    # prep tensorboard if specified
+    if args.tensorboard_dir:
+        mkdirp(args.tensorboard_dir)
+        sw = SummaryWriter(args.tensorboard_dir)
+    else:
+        sw = None
 
-    prefix = "val" if args.valdata else "test"
+    # distinguish between runs on validation data and test data
+    prefix = "val_bayes" if args.valdata else "test_bayes"
+    dataset = "cifar10"
+    ndata = (
+        NTRAIN[dataset] - int(args.tvsplit * NTRAIN[dataset])
+        if args.valdata
+        else NTEST[dataset]
+    )
 
-    # iterate over all trained runs (0-4), assume model name best_model.pt
-    for runfolder in [str(i) for i in range(5)]:
+    log_ece = coro_log_auroc(
+        sw, args.printfreq, args.bins, args.save_dir)
+
+    # iterate over trained runs
+    if args.train_mc is None:
+        test_folders = [str(i) for i in range(5)]
+    else:
+        test_folders = [
+            f for f in listdir(args.traindir)
+            if (f.endswith(f'-{args.train_mc}')) and (not f.startswith('test'))
+        ]
+        if len(test_folders) == 0:
+            print(f'no available train folder for {args.train_mc} MC samples')
+    for runfolder in test_folders:
         model_path = pjoin(args.traindir, runfolder, "checkpoint.pt")
         if not exists(model_path):
             print(f"skipping {pjoin(args.traindir, runfolder)}\n")
             continue
-
         print(f"loading model from {model_path} ...\n")
         # resume model
-        # model, dic = loadmodel(model_path, device)
         _, model, optimizer = loadcheckpoint(model_path, device)[:3]
         print(optimizer.defaults)
-        data_loader = get_dataloader(args)
-        dataset = args.dataset
-        ndata = (
-            NTRAIN[dataset] - int(args.tvsplit * NTRAIN[dataset])
-            if args.valdata
-            else NTEST[dataset]
-        )
-        if isinstance(optimizer, IVON):
-            if args.testrepeat:
-                prefix = "val_bayes" if args.valdata else "test_bayes"
-            else:
-                prefix = "val_map" if args.valdata else "test_map"
-        else:
-            prefix = "val" if args.valdata else "test"
-
+        optimizer.mc_samples = args.testrepeat
+        outclass = 10
+        data_loader = get_dataloader(outclass, args)
         print(f">>> Test starts at {next(timer)[0].isoformat()} <<<\n")
 
         if args.saveoutput:
             outputsaver = get_outputsaver(
                 args.save_dir,
                 ndata,
-                OUTCLASS[dataset],
+                outclass,
                 f"predictions_{prefix}_{runfolder}.npy",
             )
         else:
@@ -257,25 +272,15 @@ if __name__ == "__main__":
         log_ece.send((runfolder, prefix, len(data_loader), outputsaver))
         with torch.no_grad():
             model.eval()
-            if isinstance(optimizer, IVON) and args.testrepeat:
-                do_epoch(
-                    data_loader,
-                    do_evalbatch_ivon,
-                    log_ece,
-                    device,
-                    model=model,
-                    optimizer=optimizer,
-                    repeat=args.testrepeat,
-                )
-            else:
-                do_epoch(
-                    data_loader,
-                    do_evalbatch,
-                    log_ece,
-                    device,
-                    model=model,
-                )
-
+            do_epoch(
+                data_loader,
+                do_evalbatch,
+                log_ece,
+                device,
+                model=model,
+                optimizer=optimizer,
+                repeat=args.testrepeat,
+            )
         bins, _, avgvloss = log_ece.throw(StopIteration)[:3]
         if args.saveoutput:
             outputsaver.close()

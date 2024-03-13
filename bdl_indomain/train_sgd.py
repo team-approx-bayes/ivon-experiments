@@ -7,7 +7,7 @@ import sys
 
 sys.path.insert(0, "..")
 from common.models import STANDARDMODELS, MCDROPMODELS
-from common.utils import coro_timer, mkdirp, rm
+from common.utils import coro_timer, mkdirp
 from common.dataloaders import TRAINDATALOADERS, OUTCLASS
 from common.trainutils import (
     coro_log,
@@ -220,7 +220,6 @@ if __name__ == "__main__":
                 start_factor=1.0 / args.warmup,
                 end_factor=1.0,
                 total_iters=args.warmup,
-                verbose=True,
             )
             if args.warmup > 0
             else None
@@ -254,7 +253,7 @@ if __name__ == "__main__":
             # Creating a new scheduler will already change the learning rate
             print(f"End of warmup epochs, starting cosine annealing")
             scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-                optimizer, eta_min=0.0, T_max=args.epochs, verbose=True
+                optimizer, eta_min=0.0, T_max=args.epochs
             )
         model.train()
         do_epoch(

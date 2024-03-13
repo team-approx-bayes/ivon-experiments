@@ -28,7 +28,6 @@ from common.ood_utils import (
     SVHNInfo,
     Flowers102Info,
     confidence_from_prediction_npy,
-    mean_std,
     OODMetrics,
 )
 
