@@ -3,6 +3,7 @@ channels:
   - pytorch
   - nvidia
 dependencies:
+  - python=3.11
   - scipy
   - matplotlib
   - pandas
@@ -12,8 +13,12 @@ dependencies:
   - torchvision
   - torchtext
   - pytorch-cuda==11.8
+  - huggingface::datasets
+  - tqdm
   - pip
   - pip:
     - bayesian-torch
     - portalocker>=2.0.0
     - ivon-opt
+    - wandb
+    - tiktoken
