@@ -162,3 +162,8 @@ cython_debug/
 # ignore generated trained and dataset folders 
 trained/
 datasets/
+data/
+
+# ignore gpt2 logs and output
+wandb/
+out/
