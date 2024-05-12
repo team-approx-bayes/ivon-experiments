@@ -286,8 +286,10 @@ while True:
                     'best_val_loss': best_val_loss,
                     'config': config,
                 }
-                print(f"saving checkpoint to {out_dir}")
-                torch.save(checkpoint, os.path.join(out_dir, wandb_run_name, 'ckpt.pt'))
+                ckpt_dir = os.path.join(out_dir, wandb_run_name)
+                print(f"saving checkpoint to {ckpt_dir}")
+                os.makedirs(ckpt_dir, exist_ok=True)
+                torch.save(checkpoint, os.path.join(ckpt_dir, 'ckpt.pt'))
     if iter_num == 0 and eval_only:
         break
 
