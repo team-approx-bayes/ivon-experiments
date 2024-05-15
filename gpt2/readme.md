@@ -50,6 +50,8 @@ Make sure to replace `(small/medium/large)` with the actual model size you wish 
 
 Within the configuration files, you can toggle wandb logging on or off by setting the `wandb_log` parameter to `True` or `False`. Additionally, you can specify the name of the project and the run by using the `wandb_project` and `wandb_run_name` parameters, respectively.
 
+The model with the lowest validation loss (or the model used at the last validation, if the `--always_save_checkpoint` parameter is passed) will be saved as `out\(wandb_run_name in the script)\ckpt.pt`
+
 Below is the contents of the original nanoGPT's README file
 
 
