@@ -20,9 +20,9 @@ Here is a simple one-line command to build the conda environment:
 
 `conda env create --file environment.yml`
 
-This will create a conda environment called `ivon-experiments` with necessary dependencies. Especially, it will install the [`ivon-opt`](https://pypi.org/project/ivon-opt/) package which implements the IVON optimizer.
+This will create a conda environment called `ivon-experiments` with necessary dependencies. Especially, it will install the [`ivon-opt`](https://pypi.org/project/ivon-opt/) package which implements the IVON optimizer. 
  
-You can inspect the yaml file [`environment.yml`](./environment.yml) to understand the config and customize the conda environment.
+You can inspect the yaml file [`environment.yml`](./environment.yml) to understand the config and customize the conda environment. By default, we use ivon-opt-0.1.1 which is the version of the IVON optimizer we used in the paper, but using newer (and optimized) versions of IVON should give comparable results.
 
 ### FFCV dependencies for ImageNet experiments
 
@@ -34,7 +34,9 @@ For ImageNet experiments we use `ffcv` to speed up the dataloading. If you wish 
 
 This repository organizes experimental code into separate folders:
 - [`gpt2`](./gpt2): contains the GPT-2 experiments in Section 4.1.1. Follow [these instructions](./gpt2/readme.md) to run the experiments;
+- [`distributed`](./distributed): contains the ImageNet experiments in Section 4.1.2. Follow [these instructions](./distributed/readme.md) to run the experiments;
 - [`image_classification/`](./image_classification): contains the image classification experiments in Section 4.1.2 that can be run on single GPU, i.e. everything except ImageNet experiments. Follow [these instructions](./image_classification/readme.md) to run the experiments;
+- [`bdl_competiton/`](./bdl_competition): covers the [NeurIPS 2021 Bayesian deep learning competition](https://izmailovpavel.github.io/neurips_bdl_competition/) mentioned in Section 4.2.4 and Appendix D.3. Follow [these instructions](./bdl_competition/readme.md) to run the experiments;
 - [`bdl_indomain/`](./bdl_indomain): covers the in-domain Bayesian deep learning experiments in Section 4.2.1. Follow [these instructions](./bdl_indomain/readme.md) to run the experiments;
 - [`bdl_ood/`](./bdl_ood): covers the OOD experiments from Section 4.2.2. Follow [these instructions](./bdl_ood/readme.md) to run the experiments;
 - [`mcsamples/`](./mcsamples): covers the multi MC sample ablation studies from Section 4.2.3. Follow [these instructions](./mcsamples/readme.md) to run the experiments;
