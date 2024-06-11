@@ -86,10 +86,16 @@ if args.dataset == 'cifar10' or args.dataset == 'medmnist':
     x_train_ = einops.rearrange(x_train, "n h w c -> n c h w")
     x_test_ = einops.rearrange(x_test, "n h w c -> n c h w") 
 
-    train_dataset = TensorDataset(torch.from_numpy(x_train_).float() / 255.0,
-                            torch.from_numpy(y_train).long())
-    test_dataset = TensorDataset(torch.from_numpy(x_test_). float() / 255.0,
-                            torch.from_numpy(y_test).long())
+    if args.dataset == 'medmnist':
+        train_dataset = TensorDataset(torch.from_numpy(x_train_).float() / 255.0,
+                                torch.from_numpy(y_train).long())
+        test_dataset = TensorDataset(torch.from_numpy(x_test_). float() / 255.0,
+                                torch.from_numpy(y_test).long())
+    else: 
+        train_dataset = TensorDataset(torch.from_numpy(x_train_).float(),
+                                torch.from_numpy(y_train).long())
+        test_dataset = TensorDataset(torch.from_numpy(x_test_). float(),
+                                torch.from_numpy(y_test).long())
     
     nc = y_train.max() + 1
 

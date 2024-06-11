@@ -144,33 +144,6 @@ def do_trainbatch_ivon(batchinput, model, optimizer, lossfun):
 
     return prob, target, loss.item()
 
-
-train_functions = {
-    "ivon": do_trainbatch_ivon,
-}
-
-def get_optimizer(args, model):
-    return IVON(
-        model.parameters(),
-        lr=args.learning_rate,
-        mc_samples=args.mc_samples,
-        beta1=args.momentum,
-        beta2=args.momentum_hess,
-        weight_decay=args.weight_decay,
-        hess_init=args.hess_init,
-        ess=args.ess,
-        clip_radius=args.clip_radius,
-    )
-    
-# loss function is negative log-likelihood of Gaussian output of network
-#def avneg_loglik_gaussian(output, y):
-#    mu = output[:, 0]
-#    tau = output[:, 1]
-
-#    logliks = 0.5 * (-math.log(2 * math.pi) + torch.log(tau) - tau * (y - mu).square())
-#    avneg_loglik = - torch.mean(logliks)
-#    return avneg_loglik
-
 def avneg_loglik_gaussian(output, y):
     """Computes the negative log-likelihood.
 
@@ -234,10 +207,16 @@ if __name__ == "__main__":
         x_train_ = einops.rearrange(x_train, "n h w c -> n c h w") 
         x_test_ = einops.rearrange(x_test, "n h w c -> n c h w")
 
-        train_dataset = TensorDataset(torch.from_numpy(x_train_).float() / 255.0,
-                                torch.from_numpy(y_train).long())
-        test_dataset = TensorDataset(torch.from_numpy(x_test_). float() / 255.0,
-                                torch.from_numpy(y_test).long())
+        if args.dataset == 'medmnist':
+            train_dataset = TensorDataset(torch.from_numpy(x_train_).float() / 255.0,
+                                    torch.from_numpy(y_train).long())
+            test_dataset = TensorDataset(torch.from_numpy(x_test_). float() / 255.0,
+                                    torch.from_numpy(y_test).long())
+        else: 
+            train_dataset = TensorDataset(torch.from_numpy(x_train_).float(),
+                                    torch.from_numpy(y_train).long())
+            test_dataset = TensorDataset(torch.from_numpy(x_test_). float(),
+                                    torch.from_numpy(y_test).long())
         
         nc = y_train.max() + 1
         lossfun = nnf.cross_entropy
@@ -258,7 +237,17 @@ if __name__ == "__main__":
 
     model = get_model(model_names[args.dataset], data_info=di).to(args.device)
 
-    optimizer = get_optimizer(args, model)
+    optimizer = IVON(
+        model.parameters(),
+        lr=args.learning_rate,
+        mc_samples=args.mc_samples,
+        beta1=args.momentum,
+        beta2=args.momentum_hess,
+        weight_decay=args.weight_decay,
+        hess_init=args.hess_init,
+        ess=args.ess,
+        clip_radius=args.clip_radius,
+    )
 
     scheduler = (
         torch.optim.lr_scheduler.LinearLR(
