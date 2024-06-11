@@ -4,7 +4,7 @@ This covers the [NeurIPS 2021 Bayesian deep learning competition](https://izmail
 
 ## Download the competition data
 
-Run `bash download_data.sh`to download the data from the [official competition website](https://izmailovpavel.github.io/neurips_bdl_competition/).
+Run `bash download_data.sh` to download the data from the [official competition website](https://izmailovpavel.github.io/neurips_bdl_competition/).
 
 ## Run IVON on the three competition datasets
 
