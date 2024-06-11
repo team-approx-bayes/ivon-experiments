@@ -280,9 +280,10 @@ if __name__ == "__main__":
             prob, target, loss = mytrainfun(data, model, optimizer)
             total_loss += loss 
 
+        scheduler.step() 
+
         total_loss /= float(idx)
         print(f'Epoch {e}, Loss={total_loss}')
-        scheduler.step() 
 
         time_per_epoch = next(timer)[1]
 
