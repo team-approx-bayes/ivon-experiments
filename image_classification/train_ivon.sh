@@ -12,7 +12,7 @@ momentum_hess=0.99999
 wdecay=2e-4
 tbatch=50
 vbatch=50
-hess_init=0.1
+hess_init=0.5
 split=1.0
 seed=$3 
 
@@ -25,7 +25,7 @@ case $dataset in
     ;;
 
   tinyimagenet)
-    ess=100000
+    ess=200000
     ;;
 
   *)
