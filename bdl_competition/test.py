@@ -1,17 +1,18 @@
 import argparse
+import os
 from os.path import join as pjoin
-import torch
-import torch.nn.functional as nnf
-from ivon import IVON
-import sys
+
 import numpy as np
-import einops
+import torch
 import torch.nn.functional as F
+from torch.utils.data import DataLoader, TensorDataset
+
+import einops
 import scipy.stats
 from scipy.special import softmax
-from torch.utils.data import DataLoader, TensorDataset
-from pytorch_models import get_model 
-import os 
+
+from ivon import IVON
+from pytorch_models import get_model
 
 def list_pt_files(directory):
     pt_files = []

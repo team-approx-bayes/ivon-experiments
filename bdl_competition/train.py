@@ -1,22 +1,23 @@
 import argparse
-from os.path import join as pjoin
-import torch
-import torch.nn.functional as nnf
-from ivon import IVON
 import sys
+import math 
+from os.path import join as pjoin
+
 import numpy as np
 import einops
-import math 
+import torch
+import torch.nn.functional as nnf
 import torch.nn.functional as F
+from torch.utils.data import DataLoader, TensorDataset
 
 sys.path.append("..")
 from common.utils import coro_timer, mkdirp
-from torch.utils.data import DataLoader, TensorDataset
 from common.trainutils import (
     check_cuda,
     deteministic_run,
 )
 from pytorch_models import get_model 
+from ivon import IVON
 
 def get_args():
     parser = argparse.ArgumentParser(description="NeurIPS 2021 BDL Competition")
@@ -148,7 +149,6 @@ train_functions = {
     "ivon": do_trainbatch_ivon,
 }
 
-
 def get_optimizer(args, model):
     return IVON(
         model.parameters(),
@@ -266,22 +266,11 @@ if __name__ == "__main__":
             start_factor=1.0 / args.warmup,
             end_factor=1.0,
             total_iters=args.warmup,
-            verbose=True,
+            verbose=False,
         )
         if args.warmup > 0
         else None
     )
-
-    # try compile
-    # model = torch.compile(model)
-
-
-
-    print(
-        f"{sum(p.nelement() for p in model.parameters())}"
-    )
-
-    print(f">>> Training starts at {next(timer)[0].isoformat()} <<<\n")
 
     for e in range(startepoch, args.epochs):
         # run training part
@@ -290,11 +279,11 @@ if __name__ == "__main__":
             print(f"End of warmup epochs, starting cosine annealing")
             scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
                 optimizer, eta_min=args.lr_final, T_max=args.epochs,
-                verbose=True)
+                verbose=False)
         model.train()
 
         def mytrainfun(batch, model, optimizer):
-            return train_functions["ivon"](batch, model, optimizer, lossfun)
+            return do_trainbatch_ivon(batch, model, optimizer, lossfun)
 
         total_loss = 0.0
         for idx, data in enumerate(train_loader):
@@ -307,10 +296,6 @@ if __name__ == "__main__":
         scheduler.step() 
 
         time_per_epoch = next(timer)[1]
-#        print(f">>> Time elapsed: {time_per_epoch} <<<\n")
-
-
-    print(f">>> Training completed at {next(timer)[0].isoformat()} <<<\n")
 
     torch.save((model.state_dict(), optimizer.state_dict()), 
                pjoin(args.save_dir, f'model{args.seed}.pt'))
