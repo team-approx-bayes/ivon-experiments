@@ -19,6 +19,6 @@ dependencies:
   - pip:
     - bayesian-torch
     - portalocker>=2.0.0
-    - ivon-opt==0.1.1
+    - ivon-opt==0.1.2
     - wandb
     - tiktoken
