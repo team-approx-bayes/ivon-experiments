@@ -8,7 +8,7 @@ model=resnet50_imagenet
 optimizer=ivon
 testrepeat=64
 device=cuda
-traindir=../trained/${dataset}/${optimizer}_${epochs}_${name}/${model}
+traindir=../trained/${dataset}/${optimizer}_${epochs}/${model}
 seed=0
 
 python -u test.py ${traindir} ${dataset} -tr ${testrepeat} -s ${seed} \
