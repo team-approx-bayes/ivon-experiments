@@ -1,6 +1,6 @@
 # IVON Experiments
 
-This repository contains the source code for the experiments presented in the paper
+This repository contains the source code for the experiments presented in the following paper:
 
 ----
 
