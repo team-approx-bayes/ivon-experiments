@@ -47,10 +47,10 @@ This repository organizes experimental code into separate folders:
 If this code base helps your research, please consider citing
 
 ```
-@article{shen2024variational,
+@inproceedings{shen2024variational,
       title={Variational Learning is Effective for Large Deep Networks}, 
       author={Yuesong Shen and Nico Daheim and Bai Cong and Peter Nickl and Gian Maria Marconi and Clement Bazan and Rio Yokota and Iryna Gurevych and Daniel Cremers and Mohammad Emtiyaz Khan and Thomas Möllenhoff},
-      journal={arXiv:2402.17641},
+      booktitle={International Conference on Machine Learning (ICML)},
       year={2024},
       url={https://arxiv.org/abs/2402.17641}
 }
