@@ -543,7 +543,7 @@ class ImageNetInfo:
 # cf. https://github.com/libffcv/ffcv-imagenet/blob/main/train_imagenet.py
 
 def get_imagenet_train_loader(
-    data_dir: str,
+    imagenet_dir: str,
     workers: int,
     tbatch: int,
     device: torch.device,
@@ -566,8 +566,6 @@ def get_imagenet_train_loader(
         RandomResizedCropRGBImageDecoder,
         CenterCropRGBImageDecoder,
     )
-
-    imagenet_dir = pjoin(data_dir, "imagenet")
 
     if noaugment == True: 
         cropper = CenterCropRGBImageDecoder((224, 224), ratio=224.0/256.0)
@@ -629,14 +627,13 @@ def get_imagenet_train_loader(
 
 
 def get_imagenet_test_loader(
-    data_dir: str,
+    imagenet_dir: str,
     workers: int,
     batch: int,
     device: torch.device,
     dtype: torch.dtype = np.float32,
     distributed: bool = True,
 ):
-    imagenet_dir = pjoin(data_dir, "imagenet")
     from ffcv.loader import Loader, OrderOption
     from ffcv.transforms import (
         ToTensor,

@@ -4,11 +4,16 @@ import ffcv
 from ffcv.writer import DatasetWriter
 from ffcv.fields import IntField, RGBImageField
 from torchvision.datasets import ImageFolder
+import sys
+sys.path.append("..")
+from common.utils import mkdirp
 
 def main(): 
     parser = argparse.ArgumentParser()
-    parser.add_argument('imagenetdir', type=str, help='Path to ImageNet dataset')
-    parser.add_argument('ffcvdir', type=str, help='Save directory for ffcv format of ImageNet')
+    parser.add_argument(
+        'imagenetdir', type=str, help='Path to ImageNet dataset')
+    parser.add_argument(
+        'ffcvdir', type=str, help='Save directory for ffcv format of ImageNet')
     args = parser.parse_args()
 
     imagenet_dir = args.imagenetdir 
@@ -29,6 +34,7 @@ def main():
 
         writer.from_indexed_dataset(dataset, chunksize=100)
 
+    mkdirp(args.ffcvdir)
     write_dataset(os.path.join(args.ffcvdir, 'train.ffcv'), train_dataset)
     write_dataset(os.path.join(args.ffcvdir, 'val.ffcv'), val_dataset)
 
