@@ -1,0 +1,14 @@
+numpy
+einops
+pillow
+scipy
+matplotlib
+scikit-learn
+torch
+torchvision
+datasets
+tqdm
+bayesian-torch
+ivon-opt==0.1.2
+wandb
+tiktoken

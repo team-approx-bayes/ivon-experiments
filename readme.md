@@ -14,15 +14,13 @@ This repository mainly consists of Python source code and Bash scripts to run th
 
  This code base depends on an implementation of the IVON optimizer which is released in a separate repo ([https://github.com/team-approx-bayes/ivon](https://github.com/team-approx-bayes/ivon)) and as a pip installable package [`ivon-opt`](https://pypi.org/project/ivon-opt/).
 
-## Conda setup
+## Pip setup
 
-Here is a simple one-line command to build the conda environment:
+Use the following command to install the necessary dependencies using pip:
 
-`conda env create --file environment.yml`
+`pip install -r requirements.txt`
 
-This will create a conda environment called `ivon-experiments` with necessary dependencies. Especially, it will install the [`ivon-opt`](https://pypi.org/project/ivon-opt/) package which implements the IVON optimizer. 
- 
-You can inspect the yaml file [`environment.yml`](./environment.yml) to understand the config and customize the conda environment. By default, we use ivon-opt-0.1.1 which is the version of the IVON optimizer we used in the paper, but using newer (and optimized) versions of IVON should give comparable results.
+You can inspect the [`requirements.txt`](./requirements.txt) file to understand the dependencies and customize them as needed. By default, we use ivon-opt-0.1.2 which is the version of the IVON optimizer we used in the paper, but using newer (and optimized) versions of IVON should give comparable results.
 
 ### FFCV dependencies for ImageNet experiments
 
